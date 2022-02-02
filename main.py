@@ -6,7 +6,7 @@ def main():
 
 
 class FileParser:
-    def __init__(logger_level=logging.INFO):
+    def __init__(self, logger_level=logging.INFO):
         # FIXME: convert name to snake_case with python stdlib.
         self.logger = logging.getLogger(self.name)
         self.logger_level = logger_level
@@ -15,7 +15,7 @@ class FileParser:
     def parse():
         pass
 
-    def _config_logger():
+    def _config_logger(self):
 
         c_handler = logging.StreamHandler()
         c_formatter = logging.Formatter(

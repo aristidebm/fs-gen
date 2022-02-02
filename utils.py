@@ -4,14 +4,18 @@ from pathlib import Path
 class BaseParsingException(Exception):
     pass
 
-def isfile(path: str, del="/") -> bool:
-    return not path.endswith(f"{del}")
 
-def isdir(path: str, del="/") -> bool:
-    return path.endswith(f"{del}")
+def isfile(path: str, delimiter="/") -> bool:
+    return not path.endswith(f"{delimiter}")
+
+
+def isdir(path: str, delimiter="/") -> bool:
+    return path.endswith(f"{delimiter}")
+
 
 def exists(path: Path) -> bool:
     return path.exists()
+
 
 def islink(path: str) -> bool:
     pass
