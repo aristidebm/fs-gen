@@ -1,6 +1,9 @@
 from pathlib import Path
 
 
+class BaseParsingException(Exception):
+    pass
+
 def isfile(path: str, del="/") -> bool:
     return not path.endswith(f"{del}")
 
@@ -24,4 +27,3 @@ def rm(filename: Path) -> None:
 
 def touch(path: Path) -> None:
     path.touch()
-
