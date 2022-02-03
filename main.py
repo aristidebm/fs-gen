@@ -8,15 +8,22 @@ def main():
 class FileParser:
     def __init__(self, logger_level=logging.INFO):
         # FIXME: convert name to snake_case with python stdlib.
-        self.logger = logging.getLogger(self.name)
-        self.logger_level = logger_level
+        self._logger = logging.getLogger(self.name)
+        self._logger_level = logger_level
         self._config_logger()
+
+    @property
+    def logger(self):
+        return self._logger
+
+    @property
+    def logger_level(self):
+        return self._logger_level
 
     def parse():
         pass
 
     def _config_logger(self):
-
         c_handler = logging.StreamHandler()
         c_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
