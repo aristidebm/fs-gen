@@ -2,7 +2,18 @@ from pathlib import Path
 
 
 class BaseParsingException(Exception):
-    pass
+    # Each subclass must provide a custom default_detail.
+    default_detail = "An error has been occurred."
+
+    def __init__(self, detail=None):
+        self._detail = detail or self.default_detail
+
+    def __str__(self):
+        return self._detail
+
+
+class ValidationError(BaseParsingException):
+    default_detail = "Invalid data."
 
 
 def isfile(path: str, delimiter="/") -> bool:
@@ -17,8 +28,18 @@ def exists(path: Path) -> bool:
     return path.exists()
 
 
-def islink(path: str) -> bool:
+def absolute(path: Path) -> None:
+    return path.absolute()
+
+
+def islink(path: Path) -> bool:
     pass
+
+
+def isempty(path: Path) -> bool:
+    if not path.is_file():
+        return True
+    return bool(next(path.iterdir()))
 
 
 def rm(filename: Path) -> None:
