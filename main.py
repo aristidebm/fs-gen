@@ -8,25 +8,18 @@ Option = namedtuple("option", ["filename", "outdir", "delimiter", "indent"])
 
 
 def main():
-    pass
+    FileParser(logger_level=logging.DEBUG).parse()
 
 
 class FileParser:
     def __init__(self, logger_level=logging.INFO):
-        # FIXME: convert name to snake_case with python stdlib.
         self._logger = logging.getLogger(self.name)
         self._logger_level = logger_level
         self._config_logger()
-        # The position of the cursor.
-        self._cursor = 1
-
-    @property
-    def logger(self):
-        return self._logger
-
-    @property
-    def logger_level(self):
-        return self._logger_level
+        self._cursor_position = 1
+        self._current_dir = None
+        self._base_dir = None
+        self._line_number
 
     def parse(
         filename: typing.Union[str, Path],
@@ -43,11 +36,10 @@ class FileParser:
         options = Option(
             filename=filename, outdir=outdir, delimiter=delimiter, indent=indent
         )
-
         try:
             options = self._validate(options)
         except ValidationError as e:
-            self.logger.error(e)
+            self.logger.error(e.detail)
             return
 
         filename, outdir, delimiter, indent = options
@@ -56,12 +48,58 @@ class FileParser:
             filename=filename, outdir=outdir, delimiter=delimiter, indent=indent
         )
 
-    def _parse(filename, outdir, delimiter, indent):
-        pass
+    def _parse(filename: Path, outdir: Path, delimiter: str, indent: str):
+        with open(filename, "r") as f:
+            self._logger.info("Starting ...")
+            hierarchy = f.read()
+            root = next(hierarchy)
+
+            if not isdir(root, delimiter=delimiter):
+                self._logger.error("The root of hierarchy must be a folder.")
+                return
+
+            self._base_dir = self._compute_base_dir(outdir, root)
+            self._base_dir.mkdir()
+
+            self._line_number = 1
+            self._current_dir = self._base_dir
+
+            for line in hierarchy:
+                self._line_number += 1
+                parent_dir = self._compute_parent_dir(line, indent)
+                if not parent_dir:
+                    continue
+
+                if isfile(line):
+                    touch(self.parent_dir / line)
+
+                if isdir(line):
+                    (self.parent_dir / line).mkdir()
+
+    def _compute_base_dir(outdir: Path, root: Path):
+        root = root if root.is_absolute() else absolute(root)
+        outdir = outdir if outdir.is_absolute() else absolute(outdir)
+        return outdir if outdir == root else outdir
+
+    def _compute_parent_dir(line: str, indent: str):
+        pos = self._compute_cursor_position(line, indent)
+        # ignore files that are more step greater than the previous
+        # since the are malformed.
+        if pos - self._cursor_position > 1:
+            self._logger.warning(f"{self._line_number} is ignored.")
+            return
+
+        while pos <= self._cursor_position:
+            self._current_dir = self._current_dir.parent
+            pos += 1
+
+        self._cursor_position = pos
+
+        return self._current_dir
 
     def _validate(self, data: Option):
         filename = data.get("filename")
-        outdir = data.get("outdir")
+        outdir = data.get("outdir", ".")
         delimiter = data.get("delimiter", "/")
         indent = data.get("indent", "\t")
 
@@ -94,8 +132,9 @@ class FileParser:
 
         return outdir
 
-    def _get_indentation_level(line: str, indent: str) -> int:
-        pass
+    def _compute_cursor_position(line: str, indent: str) -> int:
+        match = re.match(r"[" + indent + "]" + "*")
+        return match.span()[1] if match else self._cursor_position
 
     def _config_logger(self):
         c_handler = logging.StreamHandler()
@@ -105,7 +144,7 @@ class FileParser:
 
         c_handler.setLevel(self.logger_level)
         c_handler.addFormatter(c_formatter)
-        self.logger.addHandler(c_handler)
+        self._logger.addHandler(c_handler)
 
     @classmethod
     @property
