@@ -1,0 +1,11 @@
+./root/
+	subfolder1/
+		subsubfolder1/
+		subsubfile1.txt
+		subsubfile2.txt
+		subsubfile3.txt
+		subsubfolder2/
+			subsubsubfile1.json
+	subfile1.json
+	subfile2.json
+		subfolder2/
