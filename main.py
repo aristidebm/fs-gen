@@ -215,9 +215,12 @@ class FileParser:
         return match.span()[1] if match else self._previous_position
 
     def _config_logger(self):
+        # Important, if not set, WARNING will be used, that cause
+        # handlers with level less than logger level emit no message.
+        self._logger.setLevel(self._logger_level)
         c_handler = logging.StreamHandler()
-        c_formatter = logging.Formatter("%(name)s [%(levelname)s] - %(message)s")
         c_handler.setLevel(self._logger_level)
+        c_formatter = logging.Formatter("%(name)s [%(levelname)s] - %(message)s")
         c_handler.setFormatter(c_formatter)
         self._logger.addHandler(c_handler)
 
