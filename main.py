@@ -15,6 +15,7 @@ from utils import (
     isdir,
     isfile,
     touch,
+    rm,
 )
 
 Option = namedtuple("option", ["filename", "outdir", "delimiter", "indent"])
@@ -70,35 +71,45 @@ class FileParser:
     def _parse(self, filename: Path, outdir: Path, delimiter: str, indent: str):
         with open(filename, "r") as f:
             self._logger.info("Starting ...")
-
             root = next(f).strip("\n")
             if not isdir(root, delimiter=delimiter):
-                self._logger.error("The root of hierarchy must be a folder.")
+                self._logger.error("The root of the hierarchy must be a folder.")
                 return
 
-            self._base_dir = self._compute_base_dir(outdir, root)
-            self._base_dir.mkdir()
+            base_dir = self._create_base_dir(outdir, root)
+
+            if not base_dir:
+                return
 
             self._line_number = 1
-            self._current_dir = self._base_dir
+            self._current_dir = base_dir
 
             for line in f:
                 self._line_number += 1
                 line = line.strip("\n")
                 parent_dir = self._compute_parent_dir(line, indent)
+
                 if not parent_dir:
                     continue
 
-                if isfile(line):
-                    touch(parent_dir / self._clean_line(line, delimiter, indent))
+                try:
+                    parent_dir = parent_dir / self._clean_line(line, delimiter, indent)
 
-                if isdir(line):
-                    parent_dir /= self._clean_line(line, delimiter, indent)
-                    parent_dir.mkdir()
-                    self._current_dir = parent_dir
-                    self._previous_position += 1
+                    if isfile(line):
+                        touch(parent_dir)
 
-    def _compute_base_dir(
+                    if isdir(line):
+                        parent_dir.mkdir()
+                        self._current_dir = parent_dir
+                        self._previous_position += 1
+                except OSError:
+                    # We think it is better to continue and notice the user of some errors
+                    # than suspend the generation process.
+                    self._logger.warning(f"Cannot create file {parent_dir.as_posix()}.")
+
+            self._logger.info("Process finished!")
+
+    def _create_base_dir(
         self, outdir: typing.Union[str, Path], root: typing.Union[str, Path]
     ):
         root = (
@@ -118,7 +129,29 @@ class FileParser:
             )
             root = outdir
 
-        return outdir if outdir == root else root
+        # prevent in case outdir == root to have outdir/root
+        # In this case we just take root as outdir.
+        self._base_dir = outdir if outdir == root else root
+
+        if exists(self._base_dir):
+            print(
+                f"The folder {self._base_dir.as_posix()} already exists. Do want to override it ? (yes/no): ",
+                end="",
+            )
+
+            awnser = input().strip().lower()
+
+            if awnser.startswith("y"):
+                try:
+                    rm(self._base_dir)
+                except OSError:
+                    self._logger.error(f"Cannot remove {self._base_dir.as_posix()}")
+                    return
+            else:
+                return
+
+        self._base_dir.mkdir()
+        return self._base_dir
 
     def _compute_parent_dir(self, line: str, indent: str):
         pos = self._compute_cursor_position(line, indent)
@@ -184,7 +217,6 @@ class FileParser:
     def _config_logger(self):
         c_handler = logging.StreamHandler()
         c_formatter = logging.Formatter("%(name)s [%(levelname)s] - %(message)s")
-
         c_handler.setLevel(self._logger_level)
         c_handler.setFormatter(c_formatter)
         self._logger.addHandler(c_handler)

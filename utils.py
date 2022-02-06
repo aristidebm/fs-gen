@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 
 
 class BaseParsingException(Exception):
@@ -43,9 +44,10 @@ def isempty(path: Path) -> bool:
 
 
 def rm(filename: Path) -> None:
-    # FIXME: find the diff between this and shutil.rmtree
     if filename.is_dir():
-        Path.rmdir(filename)
+        # Path.rmdir requires an empty folder
+        # that is not what we want in our case.
+        shutil.rmtree(filename)
         return
     filename.unlink()
 
